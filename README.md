@@ -1,28 +1,20 @@
 # k8s-openmpi
 
 OpenMPI test on Kubernetes.
-* Build docker image with OpenMPI:
+* Build and push worker docker image:
 ```bash
-docker build -t rongou/openmpi .
+docker build -t rongou/openmpi-worker -f Dockerfile.worker .
+docker push rongou/openmpi-worker
 ```
-* Push it to docker hub:
+* Build and push launcher docker image:
 ```bash
-docker push rongou/openmpi
+docker build -t rongou/openmpi-launcher -f Dockerfile.launcher .
+docker push rongou/openmpi-launcher
 ```
-* Create k8s `Secret` containing ssh keys:
+* Run the test:
 ```bash
-./create_secret.sh
+kubect create -f openmpi-test.yaml
 ```
-* Launch the workers:
-```bash
-kubectl create -f workers.yaml
-```
-* Get the IP addresses of the worker pods (wish there were a better way):
-```bash
-kubectl get pod --selector=app=openmpi-worker -o jsonpath='{.items[*].status.podIP}'
-```
-* Edit the `launcher.yaml` file with the IP addresses from the previous step.
-* Run the launcher:
-```bash
-kubect create -f launcher.yaml
-``` 
+
+This starts a `StatefulSet` of 4 workers, and a batch `Job` as the launcher.
+Logs can be accessed through the launcher pod.
