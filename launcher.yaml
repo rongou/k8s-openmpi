@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openmpi-launcher
+spec:
+  template:
+    spec:
+      containers:
+      - name: openmpi
+        image: rongou/openmpi
+        command: ["mpirun"]
+        args: [
+          "-allow-run-as-root",
+          "-bind-to", "none",
+          "-map-by", "slot",
+          "-np", "4",
+          "-H",
+          "localhost:1,10.32.0.3:1,10.32.0.4:1,10.32.0.5:1",
+          "hostname"
+        ]
+        volumeMounts:
+        - name: ssh-keys
+          mountPath: "/root/.ssh"
+      volumes:
+      - name: ssh-keys
+        secret:
+          secretName: ssh-keys
+          defaultMode: 256
+      restartPolicy: Never
