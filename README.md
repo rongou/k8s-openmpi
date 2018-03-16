@@ -13,11 +13,11 @@ docker push rongou/openmpi
 ```bash
 ./create_secret.sh
 ```
-* Launcher the workers:
+* Launch the workers:
 ```bash
 kubectl create -f workers.yaml
 ```
-* Get the IP addresses of the worker pods (wish there was a better way):
+* Get the IP addresses of the worker pods (wish there were a better way):
 ```bash
 kubectl get pod --selector=app=openmpi-worker -o jsonpath='{.items[*].status.podIP}'
 ```
