@@ -3,12 +3,12 @@
 OpenMPI test on Kubernetes.
 * Build and push worker docker image:
 ```bash
-docker build -t rongou/openmpi-worker -f Dockerfile.worker .
+docker build -t rongou/openmpi-worker worker
 docker push rongou/openmpi-worker
 ```
 * Build and push launcher docker image:
 ```bash
-docker build -t rongou/openmpi-launcher -f Dockerfile.launcher .
+docker build -t rongou/openmpi-launcher launcher
 docker push rongou/openmpi-launcher
 ```
 * Run the test:
