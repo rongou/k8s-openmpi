@@ -1,10 +1,7 @@
 FROM rongou/openmpi-worker
 
 # Install kubectl.
-RUN apt-get update\
- && apt-get install -y --no-install-recommends apt-transport-https curl\
- && curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -\
- && echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list\
- && apt-get update\
- && apt-get install -y --no-install-recommends kubectl\
- && rm -rf /var/lib/apt/lists/*
+RUN K8S_VERSION=$(wget -qO- https://storage.googleapis.com/kubernetes-release/release/stable.txt)\
+ && wget -q https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl\
+ && chmod +x ./kubectl\
+ && mv ./kubectl /usr/local/bin/kubectl

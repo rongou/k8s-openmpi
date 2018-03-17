@@ -1,3 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openmpi-scripts
+data:
+  kubexec.sh: |-
+    #!/bin/sh
+    REMOTE_HOST=$1
+    shift
+    kubectl exec ${REMOTE_HOST} -- /bin/sh -c "$*"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openmpi-worker
+spec:
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: openmpi-worker
+  serviceName: openmpi-worker
+  replicas: 4
+  template:
+    metadata:
+      labels:
+        app: openmpi-worker
+    spec:
+      containers:
+      - name: openmpi-worker
+        image: rongou/openmpi-worker
+        command: ["sleep"]
+        args: ["365d"]
+        volumeMounts:
+        - name: openmpi-scripts
+          mountPath: /opt/mpi
+      volumes:
+      - name: openmpi-scripts
+        configMap:
+          name: openmpi-scripts
+          defaultMode: 0700
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -26,50 +67,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: openmpi-test
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: openmpi-scripts
-data:
-  kubexec: |-
-    #!/usr/bin/env bash
-    REMOTE_HOST=$1
-    shift
-    kubectl exec ${REMOTE_HOST} -- bash -c "$*"
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: openmpi-worker
-spec:
-  podManagementPolicy: Parallel
-  updateStrategy:
-    type: OnDelete
-  selector:
-    matchLabels:
-      app: openmpi-worker
-  serviceName: openmpi-worker
-  replicas: 4
-  template:
-    metadata:
-      labels:
-        app: openmpi-worker
-    spec:
-      serviceAccountName: openmpi-test
-      containers:
-      - name: openmpi-worker
-        image: rongou/openmpi-worker
-        command: ["sleep"]
-        args: ["infinity"]
-        volumeMounts:
-        - name: openmpi-scripts
-          mountPath: /opt/mpi
-      volumes:
-      - name: openmpi-scripts
-        configMap:
-          name: openmpi-scripts
-          defaultMode: 0700
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -104,7 +101,7 @@ spec:
         ]
         env:
         - name: OMPI_MCA_plm_rsh_agent
-          value: /opt/mpi/kubexec
+          value: /opt/mpi/kubexec.sh
         volumeMounts:
         - name: openmpi-hostfile
           mountPath: /etc/mpi
