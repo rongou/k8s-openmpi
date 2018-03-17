@@ -4,8 +4,8 @@ metadata:
   name: openmpi-test
 rules:
 - apiGroups: [""]
-  resources: ["pods", "pods/log"]
-  verbs: ["get", "list"]
+  resources: ["pods"]
+  verbs: ["get"]
 - apiGroups: [""]
   resources: ["pods/exec"]
   verbs: ["create"]
@@ -64,7 +64,7 @@ spec:
         args: ["infinity"]
         volumeMounts:
         - name: openmpi-scripts
-          mountPath: /scripts
+          mountPath: /opt/mpi
       volumes:
       - name: openmpi-scripts
         configMap:
@@ -77,10 +77,10 @@ metadata:
   name: openmpi-hostfile
 data:
   hostfile: |-
-    openmpi-worker-0 slots=1 max_slots=1
-    openmpi-worker-1 slots=1 max_slots=1
-    openmpi-worker-2 slots=1 max_slots=1
-    openmpi-worker-3 slots=1 max_slots=1
+    openmpi-worker-0 slots=4 max_slots=4
+    openmpi-worker-1 slots=4 max_slots=4
+    openmpi-worker-2 slots=4 max_slots=4
+    openmpi-worker-3 slots=4 max_slots=4
 ---
 apiVersion: batch/v1
 kind: Job
@@ -98,25 +98,25 @@ spec:
           "-allow-run-as-root",
           "-bind-to", "none",
           "-map-by", "slot",
-          "-np", "4",
           "-hostfile",
-          "/etc/config/hostfile",
+          "/etc/mpi/hostfile",
           "hostname"
         ]
         env:
         - name: OMPI_MCA_plm_rsh_agent
-          value: /scripts/kubexec
+          value: /opt/mpi/kubexec
         volumeMounts:
         - name: openmpi-hostfile
-          mountPath: /etc/config
+          mountPath: /etc/mpi
         - name: openmpi-scripts
-          mountPath: /scripts
+          mountPath: /opt/mpi
       volumes:
       - name: openmpi-hostfile
         configMap:
           name: openmpi-hostfile
+          defaultMode: 0400
       - name: openmpi-scripts
         configMap:
           name: openmpi-scripts
-          defaultMode: 0700
+          defaultMode: 0500
       restartPolicy: Never
