@@ -37,7 +37,7 @@ spec:
       - name: openmpi-scripts
         configMap:
           name: openmpi-scripts
-          defaultMode: 0700
+          defaultMode: 0500
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
