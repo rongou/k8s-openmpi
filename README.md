@@ -14,7 +14,7 @@ docker push rongou/openmpi-launcher
 ```
 * Run the test:
 ```bash
-kubect create -f openmpi-test.yaml
+kubectl create -f openmpi-test.yaml
 ```
 
 This starts a `StatefulSet` of 4 workers, and a batch `Job` as the launcher.
