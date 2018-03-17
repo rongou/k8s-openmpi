@@ -3,11 +3,33 @@ kind: ConfigMap
 metadata:
   name: openmpi-scripts
 data:
+  enqueue.sh: |-
+    #!/bin/sh
+    set -x
+    pipe=/tmp/mpi/queue
+    if [ ! -p ${pipe} ]; then
+      mkfifo ${pipe}
+    fi
+    echo "$*" > ${pipe}
   kubexec.sh: |-
     #!/bin/sh
-    REMOTE_HOST=$1
-    shift
-    kubectl exec ${REMOTE_HOST} -- /bin/sh -c "$*"
+    set -x
+    lines=$1
+    pipe=/tmp/mpi/queue
+    if [ ! -p ${pipe} ]; then
+      mkfifo ${pipe}
+    fi
+    i=0
+    while [ ${i} -lt ${lines} ]; do
+      read line < ${pipe}
+      if [ -n "${line}" ]; then
+        i=$((i+1))
+        set -- ${line}
+        REMOTE_HOST=$1
+        shift
+        kubectl exec ${REMOTE_HOST} -- /bin/sh -c "$*"
+      fi
+    done
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -26,18 +48,22 @@ spec:
         app: openmpi-worker
     spec:
       containers:
-      - name: openmpi-worker
-        image: rongou/openmpi-worker
+      - name: openmpi
+        image: rongou/openmpi
         command: ["sleep"]
         args: ["365d"]
         volumeMounts:
         - name: openmpi-scripts
           mountPath: /opt/mpi
+        - name: openmpi-queue
+          mountPath: /tmp/mpi
       volumes:
       - name: openmpi-scripts
         configMap:
           name: openmpi-scripts
           defaultMode: 0500
+      - name: openmpi-queue
+        emptyDir: {}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -88,25 +114,34 @@ spec:
     spec:
       serviceAccountName: openmpi-test
       containers:
-      - name: openmpi-launcher
-        image: rongou/openmpi-launcher
+      - name: openmpi
+        image: rongou/openmpi
         command: ["mpirun"]
         args: [
           "-allow-run-as-root",
           "-bind-to", "none",
           "-map-by", "slot",
-          "-hostfile",
-          "/etc/mpi/hostfile",
+          "-mca", "plm_rsh_agent", "/opt/mpi/enqueue.sh",
+          "-hostfile", "/etc/mpi/hostfile",
           "hostname"
         ]
-        env:
-        - name: OMPI_MCA_plm_rsh_agent
-          value: /opt/mpi/kubexec.sh
         volumeMounts:
         - name: openmpi-hostfile
           mountPath: /etc/mpi
         - name: openmpi-scripts
           mountPath: /opt/mpi
+        - name: openmpi-queue
+          mountPath: /tmp/mpi
+      - name: kubectl
+        image: rongou/kubectl
+        command: ["/opt/mpi/kubexec.sh"]
+#        command: ["sleep", "365d"]
+        args: ["4"]
+        volumeMounts:
+        - name: openmpi-scripts
+          mountPath: /opt/mpi
+        - name: openmpi-queue
+          mountPath: /tmp/mpi
       volumes:
       - name: openmpi-hostfile
         configMap:
@@ -116,4 +151,6 @@ spec:
         configMap:
           name: openmpi-scripts
           defaultMode: 0500
+      - name: openmpi-queue
+        emptyDir: {}
       restartPolicy: Never
