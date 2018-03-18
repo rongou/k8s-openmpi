@@ -92,16 +92,13 @@ spec:
         image: rongou/openmpi-launcher
         command: ["mpirun"]
         args: [
-          "-allow-run-as-root",
-          "-bind-to", "none",
-          "-map-by", "slot",
-          "-hostfile",
-          "/etc/mpi/hostfile",
+          "--allow-run-as-root",
+          "--mca", "plm_rsh_agent", "/opt/mpi/kubexec.sh",
+          "--bind-to", "none",
+          "--map-by", "slot",
+          "--hostfile", "/etc/mpi/hostfile",
           "hostname"
         ]
-        env:
-        - name: OMPI_MCA_plm_rsh_agent
-          value: /opt/mpi/kubexec.sh
         volumeMounts:
         - name: openmpi-hostfile
           mountPath: /etc/mpi
