@@ -46,9 +46,21 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["pods"]
+  resourceNames: [
+    "openmpi-worker-0",
+    "openmpi-worker-1",
+    "openmpi-worker-2",
+    "openmpi-worker-3"
+  ]
   verbs: ["get"]
 - apiGroups: [""]
   resources: ["pods/exec"]
+  resourceNames: [
+    "openmpi-worker-0",
+    "openmpi-worker-1",
+    "openmpi-worker-2",
+    "openmpi-worker-3"
+  ]
   verbs: ["create"]
 ---
 apiVersion: v1
@@ -87,12 +99,14 @@ spec:
   template:
     spec:
       serviceAccountName: openmpi-test
+      securityContext:
+        runAsUser: 1009
+        fsGroup: 2003
       containers:
       - name: openmpi-launcher
         image: rongou/openmpi-launcher
         command: ["mpirun"]
         args: [
-          "--allow-run-as-root",
           "--mca", "plm_rsh_agent", "/opt/mpi/kubexec.sh",
           "--bind-to", "none",
           "--map-by", "slot",
@@ -108,9 +122,9 @@ spec:
       - name: openmpi-hostfile
         configMap:
           name: openmpi-hostfile
-          defaultMode: 0400
+          defaultMode: 0440
       - name: openmpi-scripts
         configMap:
           name: openmpi-scripts
-          defaultMode: 0500
+          defaultMode: 0550
       restartPolicy: Never
